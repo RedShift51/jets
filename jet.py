@@ -79,4 +79,4 @@ class Solver():
         return t, [r, th, phi, Pr, Pth, Pphi]
 
 sol = Solver()
-sol.step()
+sol.steps()
