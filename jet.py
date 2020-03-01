@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from scipy.integrate import RK45
 import matplotlib.pyplot as plt
+from joblib import Parallel, delayed
 
 class SolverSph():
 
@@ -21,11 +22,11 @@ class SolverSph():
 		
 		
 		self.t_beg = 0.
-		self.t_end = 1.
+		self.t_end = 200000.
 		self.solver = RK45(self.system_sph, t0=self.t_beg, \
 				y0=np.array([self.r0, self.th0, self.phi0, self.Pr0, \
 				self.Pth0, self.Pphi0]), \
-				t_bound=self.t_end, max_step=0.0001)
+				t_bound=self.t_end, max_step=0.002)
 
 	""" Part related to sphere """
 	def sum_gamma(self, *args):
@@ -313,15 +314,25 @@ plt.plot(ans[1][0], ans[1][2])
 plt.savefig("graphs.png")
 """
 x_p, y_p = [], []
-x_p = np.arange(np.log10(10.**(-3)), np.log10(100.), 0.3)
+#x_p = np.arange(np.log10(10.**(-3)), np.log10(30.), 0.3)
+x_p = np.arange(np.log10(10**(-6)), np.log(1.), 0.5)
+"""
 for el0,el in enumerate(x_p):
-	sol = SolverSph(kap=0.0001, alp=10**(el))
+	sol = SolverSph(kap=0.01, alp=10**(el))
 	ans = sol.steps()
 	y_p.append(sol.sum_gamma(ans[1][3], ans[1][4], ans[1][5])[-1])
-	print(el0, len(x_p))
+	print(el0, len(x_p), ans[0][-1], ans[1][0][-1]*np.sin(ans[1][1][-1]))
+"""
+def sol_dynamics(el):
+	sol = SolverSph(kap=10**el, alp=0.01)
+	#sol = SolverCylNoKappa()
+	ans = sol.steps()
+	return sol.sum_gamma(ans[1][3], ans[1][4], ans[1][5])[-1]
+
+y_p = Parallel(n_jobs=-1, verbose=10)(delayed(sol_dynamics)(el) for el in x_p)
 
 plt.plot(x_p, y_p)
 plt.xlabel("alpha")
 plt.ylabel("gamma")
 plt.grid()
-plt.savefig("lorentz.png")
+plt.savefig("gam_kap.png")
